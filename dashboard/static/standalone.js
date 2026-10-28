@@ -357,16 +357,10 @@ function bindWheelScroll(container) {
     const cy = container.__cy;
     if (!cy) return;
     e.preventDefault();
-    if (e.ctrlKey || e.metaKey) {
-      const level = Math.min(Math.max(cy.zoom() * Math.pow(1.01, -e.deltaY),
-                                      cy.minZoom()), cy.maxZoom());
-      const r = container.getBoundingClientRect();
-      cy.zoom({ level, renderedPosition: { x: e.clientX - r.left, y: e.clientY - r.top } });
-    } else if (e.shiftKey) {
-      cy.panBy({ x: -(e.deltaY || e.deltaX), y: 0 });
-    } else {
-      cy.panBy({ x: -e.deltaX, y: -e.deltaY });
-    }
+    const level = Math.min(Math.max(cy.zoom() * Math.pow(1.01, -e.deltaY),
+                                    cy.minZoom()), cy.maxZoom());
+    const r = container.getBoundingClientRect();
+    cy.zoom({ level, renderedPosition: { x: e.clientX - r.left, y: e.clientY - r.top } });
   }, { passive: false });
 }
 
@@ -427,7 +421,15 @@ function refreshPanel() {
   else if (PANEL.kind === "info") showRouteInfo();
 }
 function rerenderGraph() {
-  if (CURRENT) showSingle();
+  if (!CURRENT || !CY) return;
+  CY.batch(() => {
+    for (const node of CURRENT.graph.nodes) {
+      if (node.type === "molecule") {
+        CY.getElementById(node.id).data(molNodeDims(node));
+      }
+    }
+    CY.style(graphStyle());
+  });
 }
 
 function showSingle() {
